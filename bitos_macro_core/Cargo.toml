@@ -1,0 +1,9 @@
+[package]
+name = "bitos_macro_core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+proc-macro2 = "1.0.92"
+quote = "1.0.37"
+syn = { version = "2.0.90", features = ["full"] }

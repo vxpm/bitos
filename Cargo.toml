@@ -1,0 +1,3 @@
+[workspace]
+members = [ "bitos","bitos_core", "bitos_macro", "bitos_macro_core"]
+resolver = "3"

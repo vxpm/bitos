@@ -1,0 +1,9 @@
+[package]
+name = "bitos"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitut = { path = "../../bitut" }
+bitos_core = { path = "../bitos_core" }
+bitos_macro = { path = "../bitos_macro" }
