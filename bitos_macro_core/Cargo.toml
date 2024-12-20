@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-proc-macro2 = "1.0.92"
+proc-macro2.workspace = true
 quote = "1.0.37"
 syn = { version = "2.0.90", features = ["full"] }

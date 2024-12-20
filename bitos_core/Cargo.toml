@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bitut.workspace = true
 seq-macro = "0.3.5"
-bitut = { path = "../../bitut" }
-num-traits = "*"
+num-traits = "0.2.19"
+
+# todo: feature gate this
+proptest = "1.6"

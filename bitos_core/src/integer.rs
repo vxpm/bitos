@@ -102,10 +102,16 @@ const fn unsigned_mask(bits: usize) -> u64 {
 pub trait IsStorageForBits<const LEN: usize> {}
 
 /// An unsigned integer with `LEN` bits.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct UInt<T, const LEN: usize>(T);
 
 impl<T: std::fmt::Debug, const LEN: usize> std::fmt::Debug for UInt<T, LEN> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T: std::fmt::UpperHex, const LEN: usize> std::fmt::UpperHex for UInt<T, LEN> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
@@ -126,6 +132,17 @@ where
 
         unsafe { std::hint::assert_unchecked(value <= T::new(const { unsigned_mask(LEN) })) };
         value
+    }
+}
+
+impl<T, const LEN: usize> UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN> + proptest::arbitrary::Arbitrary,
+{
+    #[inline(always)]
+    pub fn any() -> impl proptest::strategy::Strategy<Value = Self> {
+        use proptest::prelude::*;
+        any::<T>().prop_map(Self::new)
     }
 }
 
@@ -282,6 +299,17 @@ pub trait SignedInt: Copy + TryFrom<i64> + Into<i64> {
     }
 }
 
+impl<T, const LEN: usize> SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN> + proptest::arbitrary::Arbitrary,
+{
+    #[inline(always)]
+    pub fn any() -> impl proptest::strategy::Strategy<Value = Self> {
+        use proptest::prelude::*;
+        any::<T>().prop_map(Self::new)
+    }
+}
+
 impl SignedInt for i8 {
     const BITS: usize = 8;
 
@@ -323,10 +351,16 @@ const fn signed_mask(bits: usize) -> i64 {
 }
 
 /// A signed integer with `LEN` bits.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct SInt<T, const LEN: usize>(T);
 
 impl<T: std::fmt::Debug, const LEN: usize> std::fmt::Debug for SInt<T, LEN> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T: std::fmt::UpperHex, const LEN: usize> std::fmt::UpperHex for SInt<T, LEN> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }

@@ -12,6 +12,7 @@ enum FieldTy {
     Simple(Box<Type>),
     /// [T; N]
     Array {
+        span: Span,
         elem: Box<Type>,
         len: Expr,
     },
@@ -23,6 +24,7 @@ impl FieldTy {
     pub fn new(ty: &Type) -> Self {
         match ty {
             Type::Array(ty_arr) => FieldTy::Array {
+                span: ty.span(),
                 elem: ty_arr.elem.clone(),
                 len: ty_arr.len.clone(),
             },
@@ -71,8 +73,8 @@ impl ToTokens for FieldTy {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
             FieldTy::Simple(ty) => ty.to_tokens(tokens),
-            FieldTy::Array { elem, len } => {
-                tokens.extend(quote_spanned! { elem.span() => [#elem; #len] })
+            FieldTy::Array { span, elem, len } => {
+                tokens.extend(quote_spanned! { *span => [#elem; #len] })
             }
             FieldTy::Try(ty) => ty.to_tokens(tokens),
         }
@@ -104,7 +106,7 @@ impl StructField {
         };
 
         let docs = attrs
-            .extract_if(|a| a.meta.path().is_ident("doc"))
+            .extract_if(.., |a| a.meta.path().is_ident("doc"))
             .collect();
 
         Ok(Self {
@@ -133,8 +135,8 @@ impl StructField {
             FieldTy::Simple(ty) => {
                 parse_quote_spanned! { ty.span() => <<#ty as ::bitos::TryBits>::Bits as ::bitos::integer::UnsignedInt>::BITS }
             }
-            FieldTy::Array { elem: inner, len } => {
-                parse_quote_spanned! { inner.span() => <<#inner as ::bitos::TryBits>::Bits as ::bitos::integer::UnsignedInt>::BITS * #len }
+            FieldTy::Array { span, elem, len } => {
+                parse_quote_spanned! { *span => <<#elem as ::bitos::TryBits>::Bits as ::bitos::integer::UnsignedInt>::BITS * #len }
             }
             FieldTy::Try(ty) => {
                 parse_quote_spanned! { ty.span() => <<#ty as ::bitos::TryBits>::Bits as ::bitos::integer::UnsignedInt>::BITS }
@@ -194,7 +196,8 @@ impl StructField {
         let bits_end = bits.bitrange.end().unwrap_or(bitstruct.bitos_attr.bitlen) as u8;
 
         let inner_ty = &bitstruct.inner_ty;
-        let field_getter_ident = format_ident!("{ident}");
+        let field_ident_str = ident.to_string();
+        let field_getter_ident = format_ident!("{}", ident);
 
         match field_ty {
             FieldTy::Simple(field_ty) => Ok(quote_spanned! {
@@ -214,13 +217,13 @@ impl StructField {
                     <#field_ty>::from_bits(extracted_downcast)
                 }
             }),
-            FieldTy::Array { elem, len } => {
-                let field_elem_getter_ident = format_ident!("{ident}_at");
+            FieldTy::Array { elem, len, .. } => {
+                let field_elem_getter_ident = format_ident!("{}_at", ident);
 
                 Ok(quote_spanned! {
                     *span =>
                     #[doc = "Gets the element at the given index in the `"]
-                    #[doc = stringify!(#ident)]
+                    #[doc = #field_ident_str]
                     #[doc = "` field."]
                     #[inline(always)]
                     #vis fn #field_elem_getter_ident (&self, index: usize) -> ::core::option::Option<#elem> {
@@ -283,17 +286,18 @@ impl StructField {
         let bits_end = bits.bitrange.end().unwrap_or(bitstruct.bitos_attr.bitlen) as u8;
 
         let inner_ty = &bitstruct.inner_ty;
-        let field_setter_ident = format_ident!("set_{ident}");
-        let field_with_ident = format_ident!("with_{ident}");
+        let field_ident_str = ident.to_string();
+        let field_setter_ident = format_ident!("set_{}", ident);
+        let field_with_ident = format_ident!("with_{}", ident);
 
         match field_ty {
             FieldTy::Simple(field_ty) => Ok(quote_spanned! {
                 *span =>
                 #[doc = "Sets the value of the `"]
-                #[doc = stringify!(#ident)]
+                #[doc = #field_ident_str]
                 #[doc = "` field."]
                 #[inline(always)]
-                #vis fn #field_setter_ident (&mut self, value: #field_ty) {
+                #vis fn #field_setter_ident (&mut self, value: #field_ty) -> &mut Self {
                     #[allow(unused_imports)]
                     use bitos::{TryBits, BitUtils, integer::UnsignedInt};
                     const { Self::__assertions() };
@@ -304,10 +308,11 @@ impl StructField {
                     );
 
                     self.0 = self.0.with_bits(#bits_start, #bits_end, value_upcast);
+                    self
                 }
 
                 #[doc = "Consumes `self` to modify the value of the `"]
-                #[doc = stringify!(#ident)]
+                #[doc = #field_ident_str]
                 #[doc = "` field and returns the modified `self`."]
                 #[inline(always)]
                 #vis fn #field_with_ident (mut self, value: #field_ty) -> Self {
@@ -315,17 +320,17 @@ impl StructField {
                     self
                 }
             }),
-            FieldTy::Array { elem, len } => {
-                let field_elem_setter_ident = format_ident!("set_{ident}_at");
-                let field_elem_with_ident = format_ident!("with_{ident}_at");
+            FieldTy::Array { elem, len, .. } => {
+                let field_elem_setter_ident = format_ident!("set_{}_at", ident);
+                let field_elem_with_ident = format_ident!("with_{}_at", ident);
 
                 Ok(quote_spanned! {
                     *span =>
                     #[doc = "Sets a single element in the `"]
-                    #[doc = stringify!(#ident)]
+                    #[doc = #field_ident_str]
                     #[doc = "` field."]
                     #[inline(always)]
-                    #vis fn #field_elem_setter_ident (&mut self, index: usize, value: #elem) {
+                    #vis fn #field_elem_setter_ident (&mut self, index: usize, value: #elem) -> &mut Self {
                         #[allow(unused_imports)]
                         use bitos::{TryBits, BitUtils, integer::UnsignedInt};
                         const { Self::__assertions() };
@@ -341,10 +346,12 @@ impl StructField {
 
                             self.0 = self.0.with_bits(offset, offset + elem_len, value_upcast);
                         }
+
+                        self
                     }
 
                     #[doc = "Consumes `self` to modify the value of a element in the `"]
-                    #[doc = stringify!(#ident)]
+                    #[doc = #field_ident_str]
                     #[doc = "` field and returns the modified `self`."]
                     #[inline(always)]
                     #vis fn #field_elem_with_ident (mut self, index: usize, value: #elem) -> Self {
@@ -353,18 +360,20 @@ impl StructField {
                     }
 
                     #[doc = "Sets the value of the `"]
-                    #[doc = stringify!(#ident)]
+                    #[doc = #field_ident_str]
                     #[doc = "` field."]
                     #[inline(always)]
-                    #vis fn #field_setter_ident (&mut self, value: [#elem; #len]) {
+                    #vis fn #field_setter_ident (&mut self, value: [#elem; #len]) -> &mut Self{
                         const { Self::__assertions() };
                         for (i, elem) in value.into_iter().enumerate() {
                             self.#field_elem_setter_ident(i, elem);
                         }
+
+                        self
                     }
 
                     #[doc = "Consumes `self` to modify the value of the `"]
-                    #[doc = stringify!(#ident)]
+                    #[doc = #field_ident_str]
                     #[doc = "` field and returns the modified `self`."]
                     #[inline(always)]
                     #vis fn #field_with_ident (mut self, value: [#elem; #len]) -> Self {
@@ -376,10 +385,10 @@ impl StructField {
             FieldTy::Try(field_ty) => Ok(quote_spanned! {
                 *span =>
                 #[doc = "Sets the value of the `"]
-                #[doc = stringify!(#ident)]
+                #[doc = #field_ident_str]
                 #[doc = "` field."]
                 #[inline(always)]
-                #vis fn #field_setter_ident (&mut self, value: #field_ty) {
+                #vis fn #field_setter_ident (&mut self, value: #field_ty) -> &mut Self {
                     #[allow(unused_imports)]
                     use bitos::{TryBits, BitUtils, integer::UnsignedInt};
                     const { Self::__assertions() };
@@ -390,6 +399,16 @@ impl StructField {
                     );
 
                     self.0 = self.0.with_bits(#bits_start, #bits_end, value_upcast);
+                    self
+                }
+
+                #[doc = "Consumes `self` to modify the value of the `"]
+                #[doc = #field_ident_str]
+                #[doc = "` field and returns the modified `self`."]
+                #[inline(always)]
+                #vis fn #field_with_ident (mut self, value: #field_ty) -> Self {
+                    self.#field_setter_ident(value);
+                    self
                 }
             }),
         }
@@ -399,6 +418,7 @@ impl StructField {
 struct BitStructInput {
     inner_ty: Box<Type>,
     bitos_attr: BitosAttr,
+    phantom_data: Option<TokenStream>,
 }
 
 pub struct BitStruct {
@@ -412,10 +432,6 @@ impl BitStruct {
         let inner_ty_name = format_ident!("u{}", bitos_attr.bitlen);
         let inner_ty =
             Box::new(parse_quote_spanned! { bitos_attr.span => ::bitos::integer::#inner_ty_name });
-        let bitstruct = BitStructInput {
-            inner_ty,
-            bitos_attr,
-        };
 
         let mut fields = Vec::new();
         let fields_err =
@@ -441,6 +457,26 @@ impl BitStruct {
             return Err(e);
         }
 
+        let generics = &s.generics;
+        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+        let ty_params = generics
+            .params
+            .iter()
+            .filter(|p| match p {
+                syn::GenericParam::Type(_) => true,
+                _ => false,
+            })
+            .collect::<Vec<_>>();
+
+        let phantom_data = (!ty_params.is_empty())
+            .then(|| quote::quote! { ::core::marker::PhantomData::<(#(#ty_params),*)> });
+
+        let bitstruct = BitStructInput {
+            inner_ty,
+            bitos_attr,
+            phantom_data,
+        };
+
         let assertions = fields
             .iter()
             .map(|f| f.assertions(&bitstruct))
@@ -462,33 +498,33 @@ impl BitStruct {
         let vis = &s.vis;
         let ident = &s.ident;
         let inner_ty = &bitstruct.inner_ty;
-
-        let generics = &s.generics;
-        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-        let ty_params = generics.params.iter().filter(|p| match p {
-            syn::GenericParam::Type(_) => true,
-            _ => false,
-        });
+        let phantom_data = &bitstruct.phantom_data;
 
         let def = parse_quote_spanned! {
             bitstruct.bitos_attr.span =>
             #(#attrs)*
             #[repr(transparent)]
-            #vis struct #ident #generics ( #inner_ty, ::core::marker::PhantomData<(#(#ty_params),*)> );
+            #[allow(clippy::all)]
+            #vis struct #ident #generics ( #inner_ty, #phantom_data );
         };
 
         let impl_ = parse_quote_spanned! {
             bitstruct.bitos_attr.span =>
-            #[allow(dead_code)]
+            #[allow(dead_code, clippy::all)]
             impl #impl_generics #ident #ty_generics #where_clause {
                 #[doc(hidden)]
                 const fn __assertions() {
                     #(#assertions)*
                 }
 
-                fn from_bits(value: <Self as ::bitos::TryBits>::Bits) -> Self {
+                pub fn from_bits(value: <Self as ::bitos::TryBits>::Bits) -> Self {
                     const { Self::__assertions() };
-                    Self(value, ::core::marker::PhantomData)
+                    Self(value, #phantom_data)
+                }
+
+                pub fn into_bits(self) -> <Self as ::bitos::TryBits>::Bits {
+                    const { Self::__assertions() };
+                    self.0
                 }
 
                 #(#getters)*
@@ -497,7 +533,9 @@ impl BitStruct {
         };
 
         let dbg = generate_debug.then(|| {
+            let ty_ident_str = ident.to_string();
             let field_idents = fields.iter().map(|f| &f.ident);
+            let field_idents_str = fields.iter().map(|f| f.ident.to_string());
             let mut generics = generics.clone();
             for param in generics.type_params_mut() {
                 param.bounds.push(parse_quote! { ::core::fmt::Debug });
@@ -506,11 +544,12 @@ impl BitStruct {
             let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
             quote::quote! {
+                #[allow(clippy::all)]
                 impl #impl_generics ::core::fmt::Debug for #ident #ty_generics #where_clause {
                     #[inline]
                     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-                        f.debug_struct(stringify!(#ident))
-                            #(.field(stringify!(#field_idents), &self.#field_idents()))*
+                        f.debug_struct(#ty_ident_str)
+                            #(.field(#field_idents_str, &self.#field_idents()))*
                             .finish()
                     }
                 }
@@ -520,12 +559,13 @@ impl BitStruct {
         let extra_impls = quote::quote! {
             #dbg
 
+            #[allow(clippy::all)]
             impl #impl_generics ::bitos::TryBits for #ident #ty_generics #where_clause {
                 type Bits = #inner_ty;
 
                 #[inline(always)]
                 fn try_from_bits(value: Self::Bits) -> ::core::option::Option<Self> {
-                    Some(Self(value, ::core::marker::PhantomData))
+                    Some(Self(value, #phantom_data))
                 }
 
                 #[inline(always)]
@@ -534,10 +574,11 @@ impl BitStruct {
                 }
             }
 
+            #[allow(clippy::all)]
             impl #impl_generics ::bitos::Bits for #ident #ty_generics #where_clause {
                 #[inline(always)]
                 fn from_bits(value: Self::Bits) -> Self {
-                    Self(value, ::core::marker::PhantomData)
+                    Self(value, #phantom_data)
                 }
             }
         };

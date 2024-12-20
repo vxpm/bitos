@@ -80,6 +80,7 @@ impl BitEnum {
                 type Bits = #inner_ty;
 
                 #[inline(always)]
+                #[allow(non_upper_case_globals)]
                 fn try_from_bits(value: Self::Bits) -> ::core::option::Option<Self> {
                     #(
                         const #variant_const_idents: u64 = #ident::#variant_idents as u64;

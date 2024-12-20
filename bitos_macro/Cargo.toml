@@ -10,5 +10,5 @@ proc-macro = true
 bitos = { path = "../bitos" }
 
 [dependencies]
+proc-macro2.workspace = true
 bitos_macro_core = { path = "../bitos_macro_core" }
-proc-macro2 = "1.0.92"
