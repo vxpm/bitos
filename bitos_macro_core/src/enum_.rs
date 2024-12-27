@@ -4,9 +4,9 @@ use quote::{ToTokens, format_ident};
 use syn::{Error, Expr, Ident, ItemEnum, Type, Variant, parse_quote_spanned, spanned::Spanned};
 
 struct EnumVariant {
-    span: Span,
+    _span: Span,
     ident: Ident,
-    value: Option<Expr>,
+    _value: Option<Expr>,
 }
 
 impl EnumVariant {
@@ -15,7 +15,11 @@ impl EnumVariant {
         let ident = variant.ident.clone();
         let value = variant.discriminant.as_ref().map(|(_, e)| e.clone());
 
-        Ok(Self { span, ident, value })
+        Ok(Self {
+            _span: span,
+            ident,
+            _value: value,
+        })
     }
 }
 

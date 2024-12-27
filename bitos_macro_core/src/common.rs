@@ -11,7 +11,7 @@ pub fn extract_attr(ident: &str, attrs: &mut Vec<Attribute>) -> Option<Attribute
     Some(attrs.remove(index))
 }
 
-pub fn extract_derive(ident: &str, attrs: &mut Vec<Attribute>) -> bool {
+pub fn extract_derive(ident: &str, attrs: &mut [Attribute]) -> bool {
     let Some(attr) = attrs.iter_mut().find(|a| a.meta.path().is_ident("derive")) else {
         return false;
     };
@@ -25,7 +25,7 @@ pub fn extract_derive(ident: &str, attrs: &mut Vec<Attribute>) -> bool {
         return false;
     };
 
-    let contains = args.iter().find(|a| a.is_ident(ident)).is_some();
+    let contains = args.iter().any(|a| a.is_ident(ident));
     if contains {
         args = Punctuated::from_iter(args.into_iter().filter(|a| !a.is_ident(ident)));
         list.tokens = args.to_token_stream();

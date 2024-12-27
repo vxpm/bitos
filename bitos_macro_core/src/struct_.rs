@@ -462,10 +462,7 @@ impl BitStruct {
         let ty_params = generics
             .params
             .iter()
-            .filter(|p| match p {
-                syn::GenericParam::Type(_) => true,
-                _ => false,
-            })
+            .filter(|p| matches!(p, syn::GenericParam::Type(_)))
             .collect::<Vec<_>>();
 
         let phantom_data = (!ty_params.is_empty())
