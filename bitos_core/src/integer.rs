@@ -2,6 +2,9 @@ use bitut::BitUtils;
 use num_traits::PrimInt;
 use seq_macro::seq;
 
+#[cfg(feature = "zerocopy")]
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout};
+
 mod sealed {
     pub type U8 = u8;
     pub type U16 = u16;
@@ -91,6 +94,7 @@ impl UnsignedInt for u64 {
     }
 }
 
+#[inline(always)]
 const fn unsigned_mask(bits: usize) -> u64 {
     (1 << bits) - 1
 }
@@ -103,6 +107,11 @@ pub trait IsStorageForBits<const LEN: usize> {}
 
 /// An unsigned integer with `LEN` bits.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[cfg_attr(
+    feature = "zerocopy",
+    derive(KnownLayout, Immutable, IntoBytes, FromBytes)
+)]
+#[repr(transparent)]
 pub struct UInt<T, const LEN: usize>(T);
 
 impl<T: std::fmt::Debug, const LEN: usize> std::fmt::Debug for UInt<T, LEN> {
@@ -132,17 +141,6 @@ where
 
         unsafe { std::hint::assert_unchecked(value <= T::new(const { unsigned_mask(LEN) })) };
         value
-    }
-}
-
-impl<T, const LEN: usize> UInt<T, LEN>
-where
-    T: UnsignedInt + PrimInt + IsStorageForBits<LEN> + proptest::arbitrary::Arbitrary,
-{
-    #[inline(always)]
-    pub fn any() -> impl proptest::strategy::Strategy<Value = Self> {
-        use proptest::prelude::*;
-        any::<T>().prop_map(Self::new)
     }
 }
 
@@ -299,17 +297,6 @@ pub trait SignedInt: Copy + TryFrom<i64> + Into<i64> {
     }
 }
 
-impl<T, const LEN: usize> SInt<T, LEN>
-where
-    T: SignedInt + PrimInt + IsStorageForBits<LEN> + proptest::arbitrary::Arbitrary,
-{
-    #[inline(always)]
-    pub fn any() -> impl proptest::strategy::Strategy<Value = Self> {
-        use proptest::prelude::*;
-        any::<T>().prop_map(Self::new)
-    }
-}
-
 impl SignedInt for i8 {
     const BITS: usize = 8;
 
@@ -346,12 +333,18 @@ impl SignedInt for i64 {
     }
 }
 
+#[inline(always)]
 const fn signed_mask(bits: usize) -> i64 {
     unsigned_mask(bits) as i64
 }
 
 /// A signed integer with `LEN` bits.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+#[cfg_attr(
+    feature = "zerocopy",
+    derive(KnownLayout, Immutable, IntoBytes, FromBytes)
+)]
+#[repr(transparent)]
 pub struct SInt<T, const LEN: usize>(T);
 
 impl<T: std::fmt::Debug, const LEN: usize> std::fmt::Debug for SInt<T, LEN> {

@@ -107,7 +107,32 @@ impl BitEnum {
             #bits_impl
         };
 
-        Ok(BitEnum { def: e, impl_ })
+        let enum_repr_size = bitos_attr.bitlen.next_power_of_two().max(8);
+        let def = if variants.len() == 2usize.pow(enum_repr_size as u32) {
+            let zerocopy = if cfg!(feature = "zerocopy") {
+                Some(quote::quote! {
+                    #[derive(
+                        ::zerocopy::KnownLayout,
+                        ::zerocopy::Immutable,
+                        ::zerocopy::IntoBytes,
+                        ::zerocopy::FromBytes,
+                    )]
+                })
+            } else {
+                None
+            };
+            let repr = format_ident!("u{}", enum_repr_size);
+
+            syn::parse_quote! {
+                #zerocopy
+                #[repr(#repr)]
+                #e
+            }
+        } else {
+            e
+        };
+
+        Ok(BitEnum { def, impl_ })
     }
 }
 

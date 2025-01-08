@@ -1,7 +1,6 @@
 #![warn(clippy::semicolon_if_nothing_returned)]
 
-use bitos::{Bits, integer::*};
-use bitos_macro::bitos;
+use bitos::prelude::*;
 
 #[bitos(8)]
 #[derive(Debug)]

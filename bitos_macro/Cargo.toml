@@ -7,8 +7,12 @@ edition = "2024"
 proc-macro = true
 
 [dev-dependencies]
-bitos = { path = "../bitos" }
+bitos = { path = "../bitos", features = ["zerocopy"] }
+zerocopy = "0.8"
 
 [dependencies]
 proc-macro2.workspace = true
 bitos_macro_core = { path = "../bitos_macro_core" }
+
+[features]
+zerocopy = ["bitos_macro_core/zerocopy"]

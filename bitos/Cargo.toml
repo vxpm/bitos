@@ -7,3 +7,6 @@ edition = "2024"
 bitut.workspace = true
 bitos_core = { path = "../bitos_core" }
 bitos_macro = { path = "../bitos_macro" }
+
+[features]
+zerocopy = ["bitos_core/zerocopy", "bitos_macro/zerocopy"]

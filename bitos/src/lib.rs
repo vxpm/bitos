@@ -1,5 +1,7 @@
-pub use bitos_core::*;
-pub use bitos_macro::*;
+pub mod prelude {
+    pub use bitos_core::*;
+    pub use bitos_macro::*;
+    pub use bitut::{self, BitUtils};
+}
 
-#[doc(hidden)]
-pub use bitut::BitUtils;
+pub use prelude::*;

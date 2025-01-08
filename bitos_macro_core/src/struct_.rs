@@ -497,9 +497,23 @@ impl BitStruct {
         let inner_ty = &bitstruct.inner_ty;
         let phantom_data = &bitstruct.phantom_data;
 
+        let zerocopy = if cfg!(feature = "zerocopy") {
+            Some(quote::quote! {
+                #[derive(
+                    ::zerocopy::KnownLayout,
+                    ::zerocopy::Immutable,
+                    ::zerocopy::IntoBytes,
+                    ::zerocopy::FromBytes,
+                )]
+            })
+        } else {
+            None
+        };
+
         let def = parse_quote_spanned! {
             bitstruct.bitos_attr.span =>
             #(#attrs)*
+            #zerocopy
             #[repr(transparent)]
             #[allow(clippy::all)]
             #vis struct #ident #generics ( #inner_ty, #phantom_data );
