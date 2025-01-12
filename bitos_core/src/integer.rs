@@ -1,3 +1,8 @@
+use std::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, ShlAssign, Shr,
+    ShrAssign,
+};
+
 use bitut::BitUtils;
 use num_traits::PrimInt;
 use seq_macro::seq;
@@ -229,6 +234,133 @@ where
     }
 }
 
+// bit ops
+impl<T, const LEN: usize> BitOr for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl<T, const LEN: usize> BitOrAssign for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    #[inline(always)]
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
+}
+
+impl<T, const LEN: usize> BitAnd for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self(self.0 & rhs.0)
+    }
+}
+
+impl<T, const LEN: usize> BitAndAssign for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    #[inline(always)]
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = *self & rhs;
+    }
+}
+
+impl<T, const LEN: usize> BitXor for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self(self.0 ^ rhs.0)
+    }
+}
+
+impl<T, const LEN: usize> BitXorAssign for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    #[inline(always)]
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self = *self ^ rhs;
+    }
+}
+
+impl<T, const LEN: usize> Not for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn not(self) -> Self::Output {
+        Self::new(!self.0)
+    }
+}
+
+impl<T, I, const LEN: usize> Shl<I> for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+    I: UnsignedInt,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn shl(self, rhs: I) -> Self::Output {
+        Self::new(self.0 << rhs.value() as usize)
+    }
+}
+
+impl<T, I, const LEN: usize> ShlAssign<I> for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+    I: UnsignedInt,
+{
+    #[inline(always)]
+    fn shl_assign(&mut self, rhs: I) {
+        *self = *self << rhs;
+    }
+}
+
+impl<T, I, const LEN: usize> Shr<I> for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+    I: UnsignedInt,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn shr(self, rhs: I) -> Self::Output {
+        Self::new(self.0 >> rhs.value() as usize)
+    }
+}
+
+impl<T, I, const LEN: usize> ShrAssign<I> for UInt<T, LEN>
+where
+    T: UnsignedInt + PrimInt + IsStorageForBits<LEN>,
+    I: UnsignedInt,
+{
+    #[inline(always)]
+    fn shr_assign(&mut self, rhs: I) {
+        *self = *self << rhs;
+    }
+}
+
 seq!(N in 1..8 {
     #(
         #[allow(non_camel_case_types)]
@@ -430,6 +562,133 @@ where
         self.0
             .try_with_bits(start, end, value.value())
             .map(Self::new)
+    }
+}
+
+// bit ops
+impl<T, const LEN: usize> BitOr for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl<T, const LEN: usize> BitOrAssign for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    #[inline(always)]
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
+}
+
+impl<T, const LEN: usize> BitAnd for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self(self.0 & rhs.0)
+    }
+}
+
+impl<T, const LEN: usize> BitAndAssign for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    #[inline(always)]
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = *self & rhs;
+    }
+}
+
+impl<T, const LEN: usize> BitXor for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self(self.0 ^ rhs.0)
+    }
+}
+
+impl<T, const LEN: usize> BitXorAssign for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    #[inline(always)]
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self = *self ^ rhs;
+    }
+}
+
+impl<T, const LEN: usize> Not for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn not(self) -> Self::Output {
+        Self::new(!self.0)
+    }
+}
+
+impl<T, I, const LEN: usize> Shl<I> for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+    I: UnsignedInt,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn shl(self, rhs: I) -> Self::Output {
+        Self::new(self.0 << rhs.value() as usize)
+    }
+}
+
+impl<T, I, const LEN: usize> ShlAssign<I> for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+    I: UnsignedInt,
+{
+    #[inline(always)]
+    fn shl_assign(&mut self, rhs: I) {
+        *self = *self << rhs;
+    }
+}
+
+impl<T, I, const LEN: usize> Shr<I> for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+    I: UnsignedInt,
+{
+    type Output = Self;
+
+    #[inline(always)]
+    fn shr(self, rhs: I) -> Self::Output {
+        Self::new(self.0 >> rhs.value() as usize)
+    }
+}
+
+impl<T, I, const LEN: usize> ShrAssign<I> for SInt<T, LEN>
+where
+    T: SignedInt + PrimInt + IsStorageForBits<LEN>,
+    I: UnsignedInt,
+{
+    #[inline(always)]
+    fn shr_assign(&mut self, rhs: I) {
+        *self = *self << rhs;
     }
 }
 
