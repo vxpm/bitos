@@ -5,8 +5,9 @@ edition = "2024"
 
 [dependencies]
 proc-macro2.workspace = true
-quote = "1.0.37"
-syn = { version = "2.0.90", features = ["full"] }
+quote = "1.0"
+syn = { version = "2.0", features = ["full"] }
+heck = "0.5"
 
 [features]
 zerocopy = []

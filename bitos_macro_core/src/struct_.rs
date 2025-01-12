@@ -1,6 +1,7 @@
 use std::ops::Range;
 
 use crate::common::{BitosAttr, BitsAttr, extract_derive};
+use heck::ToShoutySnakeCase;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote_spanned};
 use syn::{
@@ -182,6 +183,38 @@ impl StructField {
         }
     }
 
+    fn mask(&self, bitstruct: &BitStructInput) -> Result<TokenStream, Error> {
+        let Self {
+            span,
+            vis,
+            ident,
+            bits,
+            ..
+        } = self;
+
+        let bits_start = bits.bitrange.start() as u8;
+        let bits_end = bits.bitrange.end().unwrap_or(bitstruct.bitos_attr.bitlen) as u8;
+        let len = bits_end.saturating_sub(bits_start);
+        let mask_value = ((1u64 << len) - 1) << bits_start;
+
+        let mask_ident = format_ident!("{}_MASK", ident.to_string().to_shouty_snake_case());
+        let inner_ty = &bitstruct.inner_ty;
+
+        let mask = if bitstruct.bitos_attr.bitlen.is_power_of_two() {
+            quote::quote! { #mask_value as _ }
+        } else {
+            quote::quote! { #inner_ty::new(#mask_value as _) }
+        };
+
+        Ok(quote_spanned! {
+            *span =>
+            #[docs = "Mask where only bits of the `"]
+            #[docs = stringify!(#ident)]
+            #[docs = "` field are set"]
+            #vis const #mask_ident: #inner_ty = #mask;
+        })
+    }
+
     fn getter(&self, bitstruct: &BitStructInput) -> Result<TokenStream, Error> {
         let Self {
             span,
@@ -272,7 +305,7 @@ impl StructField {
         }
     }
 
-    fn setter(&self, bitstruct: &BitStructInput) -> Result<TokenStream, Error> {
+    fn setters(&self, bitstruct: &BitStructInput) -> Result<TokenStream, Error> {
         let Self {
             span,
             vis,
@@ -479,6 +512,11 @@ impl BitStruct {
             .map(|f| f.assertions(&bitstruct))
             .collect::<Vec<_>>();
 
+        let masks = fields
+            .iter()
+            .map(|f| f.mask(&bitstruct))
+            .collect::<Result<Vec<_>, _>>()?;
+
         let getters = fields
             .iter()
             .map(|f| f.getter(&bitstruct))
@@ -486,7 +524,7 @@ impl BitStruct {
 
         let setters = fields
             .iter()
-            .map(|f| f.setter(&bitstruct))
+            .map(|f| f.setters(&bitstruct))
             .collect::<Result<Vec<_>, _>>()?;
 
         let generate_debug = extract_derive("Debug", &mut s.attrs);
@@ -523,6 +561,8 @@ impl BitStruct {
             bitstruct.bitos_attr.span =>
             #[allow(dead_code, clippy::all)]
             impl #impl_generics #ident #ty_generics #where_clause {
+                #(#masks)*
+
                 #[doc(hidden)]
                 const fn __assertions() {
                     #(#assertions)*
