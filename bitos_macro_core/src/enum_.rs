@@ -65,7 +65,13 @@ impl BitEnum {
             .collect::<Vec<_>>();
 
         let ident = &e.ident;
-        let generics = &e.generics;
+
+        let mut generics = e.generics.clone();
+        if let Some(wc) = &mut generics.where_clause {
+            wc.predicates.push(syn::parse_quote!(Self: Copy));
+        } else {
+            generics.where_clause = Some(syn::parse_quote!(where Self: Copy));
+        }
         let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
         let bits_impl = (2usize.pow(bitos_attr.bitlen as u32) == e.variants.len()).then(|| {
@@ -99,8 +105,8 @@ impl BitEnum {
                 }
 
                 #[inline(always)]
-                fn into_bits(self) -> Self::Bits {
-                    <Self::Bits as ::bitos::integer::UnsignedInt>::new(self as u64)
+                fn to_bits(&self) -> Self::Bits {
+                    <Self::Bits as ::bitos::integer::UnsignedInt>::new(*self as u64)
                 }
             }
 

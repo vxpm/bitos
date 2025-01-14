@@ -330,7 +330,7 @@ impl StructField {
                     use bitos::{TryBits, BitUtils, integer::UnsignedInt};
                     const { Self::__assertions() };
 
-                    let value_bits = value.into_bits();
+                    let value_bits = value.to_bits();
                     let value_upcast = <#inner_ty as UnsignedInt>::new(
                         <<#field_ty as TryBits>::Bits as UnsignedInt>::value(value_bits)
                     );
@@ -367,7 +367,7 @@ impl StructField {
                             let elem_len = <#elem as TryBits>::Bits::BITS as u8;
                             let offset = #bits_start + elem_len * index as u8;
 
-                            let value_bits = value.into_bits();
+                            let value_bits = value.to_bits();
                             let value_upcast = <#inner_ty as UnsignedInt>::new(
                                 <<#elem as TryBits>::Bits as UnsignedInt>::value(value_bits)
                             );
@@ -421,7 +421,7 @@ impl StructField {
                     use bitos::{TryBits, BitUtils, integer::UnsignedInt};
                     const { Self::__assertions() };
 
-                    let value_bits = value.into_bits();
+                    let value_bits = value.to_bits();
                     let value_upcast = <#inner_ty as UnsignedInt>::new(
                         <<#field_ty as TryBits>::Bits as UnsignedInt>::value(value_bits)
                     );
@@ -563,12 +563,14 @@ impl BitStruct {
                     #(#assertions)*
                 }
 
+                #[inline(always)]
                 pub fn from_bits(value: <Self as ::bitos::TryBits>::Bits) -> Self {
                     const { Self::__assertions() };
                     Self(value, #phantom_data)
                 }
 
-                pub fn into_bits(self) -> <Self as ::bitos::TryBits>::Bits {
+                #[inline(always)]
+                pub fn to_bits(&self) -> <Self as ::bitos::TryBits>::Bits {
                     const { Self::__assertions() };
                     self.0
                 }
@@ -615,7 +617,7 @@ impl BitStruct {
                 }
 
                 #[inline(always)]
-                fn into_bits(self) -> Self::Bits {
+                fn to_bits(&self) -> Self::Bits {
                     self.0
                 }
             }

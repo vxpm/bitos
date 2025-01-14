@@ -11,7 +11,7 @@ pub trait TryBits: Sized {
     fn try_from_bits(value: Self::Bits) -> Option<Self>;
 
     /// Turns this value into it's raw bit representation.
-    fn into_bits(self) -> Self::Bits;
+    fn to_bits(&self) -> Self::Bits;
 }
 
 /// Trait for types that can be created from and turned into raw bits.
@@ -35,8 +35,8 @@ macro_rules! impl_bits_uint {
                 }
 
                 #[inline(always)]
-                fn into_bits(self) -> Self::Bits {
-                    self
+                fn to_bits(&self) -> Self::Bits {
+                    *self
                 }
             }
 
@@ -59,8 +59,8 @@ macro_rules! impl_bits_uint {
                 }
 
                 #[inline(always)]
-                fn into_bits(self) -> Self::Bits {
-                    self
+                fn to_bits(&self) -> Self::Bits {
+                    *self
                 }
             }
 
@@ -92,7 +92,7 @@ macro_rules! impl_bits_sint {
                 }
 
                 #[inline(always)]
-                fn into_bits(self) -> Self::Bits {
+                fn to_bits(&self) -> Self::Bits {
                     Self::Bits::new(self.value() as $uprim)
                 }
             }
@@ -117,8 +117,8 @@ macro_rules! impl_bits_sint {
                 }
 
                 #[inline(always)]
-                fn into_bits(self) -> Self::Bits {
-                    self as $uprim
+                fn to_bits(&self) -> Self::Bits {
+                    *self as $uprim
                 }
             }
 
@@ -143,8 +143,8 @@ impl TryBits for bool {
     }
 
     #[inline(always)]
-    fn into_bits(self) -> Self::Bits {
-        integer::u1::new(self.into())
+    fn to_bits(&self) -> Self::Bits {
+        integer::u1::new((*self).into())
     }
 }
 
