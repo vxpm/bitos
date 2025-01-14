@@ -200,11 +200,12 @@ impl StructField {
         let mask_ident = format_ident!("{}_MASK", ident.to_string().to_shouty_snake_case());
         let inner_ty = &bitstruct.inner_ty;
 
-        let mask = if bitstruct.bitos_attr.bitlen.is_power_of_two() {
-            quote::quote! { #mask_value as _ }
-        } else {
-            quote::quote! { #inner_ty::new(#mask_value as _) }
-        };
+        let mask =
+            if bitstruct.bitos_attr.bitlen >= 8 && bitstruct.bitos_attr.bitlen.is_power_of_two() {
+                quote::quote! { #mask_value as _ }
+            } else {
+                quote::quote! { #inner_ty::new(#mask_value as _) }
+            };
 
         Ok(quote_spanned! {
             *span =>
