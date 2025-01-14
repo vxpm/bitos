@@ -208,9 +208,9 @@ impl StructField {
 
         Ok(quote_spanned! {
             *span =>
-            #[docs = "Mask where only bits of the `"]
-            #[docs = stringify!(#ident)]
-            #[docs = "` field are set"]
+            #[doc = "Mask where only bits of the `"]
+            #[doc = stringify!(#ident)]
+            #[doc = "` field are set"]
             #vis const #mask_ident: #inner_ty = #mask;
         })
     }
