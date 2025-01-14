@@ -196,23 +196,17 @@ impl StructField {
         let bits_end = bits.bitrange.end().unwrap_or(bitstruct.bitos_attr.bitlen) as u8;
         let len = bits_end.saturating_sub(bits_start);
         let mask_value = ((1u64 << len) - 1) << bits_start;
+        let mask_value = mask_value & ((1u64 << bitstruct.bitos_attr.bitlen) - 1);
 
         let mask_ident = format_ident!("{}_MASK", ident.to_string().to_shouty_snake_case());
-        let inner_ty = &bitstruct.inner_ty;
-
-        let mask =
-            if bitstruct.bitos_attr.bitlen >= 8 && bitstruct.bitos_attr.bitlen.is_power_of_two() {
-                quote::quote! { #mask_value as _ }
-            } else {
-                quote::quote! { #inner_ty::new(#mask_value as _) }
-            };
+        let mask = quote::quote! { #mask_value as _ };
 
         Ok(quote_spanned! {
             *span =>
             #[doc = "Mask where only bits of the `"]
             #[doc = stringify!(#ident)]
             #[doc = "` field are set"]
-            #vis const #mask_ident: #inner_ty = #mask;
+            #vis const #mask_ident: u64 = #mask;
         })
     }
 
