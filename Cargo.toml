@@ -3,5 +3,5 @@ members = ["bitos", "bitos_core", "bitos_macro", "bitos_macro_core"]
 resolver = "3"
 
 [workspace.dependencies]
-bitut = { git = "https://github.com/vxpm/bitut" }
+bitut = { git = "https://github.com/vxpm/bitut", features = ["const_impl"] }
 proc-macro2 = "1.0.92"
