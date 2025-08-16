@@ -195,8 +195,8 @@ impl StructField {
         let bits_start = bits.bitrange.start() as u8;
         let bits_end = bits.bitrange.end().unwrap_or(bitstruct.bitos_attr.bitlen) as u8;
         let len = bits_end.saturating_sub(bits_start);
-        let mask_value = ((1u64 << len) - 1) << bits_start;
-        let mask_value = mask_value & ((1u64 << bitstruct.bitos_attr.bitlen) - 1);
+        let mask_value = (((1u128 << len) - 1) as u64) << bits_start;
+        let mask_value = mask_value & (((1u128 << bitstruct.bitos_attr.bitlen) - 1) as u64);
 
         let mask_ident = format_ident!("{}_MASK", ident.to_string().to_shouty_snake_case());
         let mask = quote::quote! { #mask_value as _ };
