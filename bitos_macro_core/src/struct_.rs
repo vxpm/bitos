@@ -5,8 +5,8 @@ use heck::ToShoutySnakeCase;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote_spanned};
 use syn::{
-    Attribute, Error, Expr, Field, Ident, ItemImpl, ItemStruct, Type, Visibility, parse_quote,
-    parse_quote_spanned, spanned::Spanned,
+    Attribute, Error, Expr, Field, Ident, ItemConst, ItemImpl, ItemStruct, Type, Visibility,
+    parse_quote, parse_quote_spanned, spanned::Spanned,
 };
 
 enum FieldTy {
@@ -174,7 +174,7 @@ impl StructField {
         });
 
         parse_quote_spanned! {
-            self.bits.span =>
+            self.span =>
             {
                 #start_err
                 #end_err
@@ -210,7 +210,11 @@ impl StructField {
         })
     }
 
-    fn getter(&self, bitstruct: &BitStructInput) -> Result<TokenStream, Error> {
+    fn getter(
+        &self,
+        bitstruct: &BitStructInput,
+        assertions: &TokenStream,
+    ) -> Result<TokenStream, Error> {
         let Self {
             span,
             vis,
@@ -235,7 +239,7 @@ impl StructField {
                 #vis fn #field_getter_ident (&self) -> #field_ty {
                     #[allow(unused_imports)]
                     use bitos::{TryBits, Bits, BitUtils, integer::UnsignedInt};
-                    const { Self::__assertions() };
+                    #assertions
 
                     let extracted_bits = self.0.bits(#bits_start, #bits_end);
                     let extracted_downcast = <<#field_ty as TryBits>::Bits as UnsignedInt>::new(
@@ -300,7 +304,11 @@ impl StructField {
         }
     }
 
-    fn setters(&self, bitstruct: &BitStructInput) -> Result<TokenStream, Error> {
+    fn setters(
+        &self,
+        bitstruct: &BitStructInput,
+        assertions: &TokenStream,
+    ) -> Result<TokenStream, Error> {
         let Self {
             span,
             vis,
@@ -328,7 +336,7 @@ impl StructField {
                 #vis fn #field_setter_ident (&mut self, value: #field_ty) -> &mut Self {
                     #[allow(unused_imports)]
                     use bitos::{TryBits, BitUtils, integer::UnsignedInt};
-                    const { Self::__assertions() };
+                    #assertions
 
                     let value_bits = value.to_bits();
                     let value_upcast = <#inner_ty as UnsignedInt>::new(
@@ -361,7 +369,7 @@ impl StructField {
                     #vis fn #field_elem_setter_ident (&mut self, index: usize, value: #elem) -> &mut Self {
                         #[allow(unused_imports)]
                         use bitos::{TryBits, BitUtils, integer::UnsignedInt};
-                        const { Self::__assertions() };
+                        #assertions
 
                         if index < #len {
                             let elem_len = <#elem as TryBits>::Bits::BITS as u8;
@@ -392,7 +400,7 @@ impl StructField {
                     #[doc = "` field."]
                     #[inline(always)]
                     #vis fn #field_setter_ident (&mut self, value: [#elem; #len]) -> &mut Self{
-                        const { Self::__assertions() };
+                        #assertions
                         for (i, elem) in value.into_iter().enumerate() {
                             self.#field_elem_setter_ident(i, elem);
                         }
@@ -419,7 +427,7 @@ impl StructField {
                 #vis fn #field_setter_ident (&mut self, value: #field_ty) -> &mut Self {
                     #[allow(unused_imports)]
                     use bitos::{TryBits, BitUtils, integer::UnsignedInt};
-                    const { Self::__assertions() };
+                    #assertions
 
                     let value_bits = value.to_bits();
                     let value_upcast = <#inner_ty as UnsignedInt>::new(
@@ -450,6 +458,7 @@ struct BitStructInput {
 }
 
 pub struct BitStruct {
+    pub const_assertions: Option<ItemConst>,
     pub def: ItemStruct,
     pub impl_: ItemImpl,
     pub extra_impls: TokenStream,
@@ -486,6 +495,7 @@ impl BitStruct {
         }
 
         let generics = &s.generics;
+        let has_generics = !generics.params.is_empty();
         let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
         let ty_params = generics
             .params
@@ -502,6 +512,14 @@ impl BitStruct {
             phantom_data,
         };
 
+        let inline_assertions = if has_generics {
+            quote::quote! {
+                const { Self::__assertions() };
+            }
+        } else {
+            TokenStream::new()
+        };
+
         let assertions = fields
             .iter()
             .map(|f| f.assertions(&bitstruct))
@@ -514,12 +532,12 @@ impl BitStruct {
 
         let getters = fields
             .iter()
-            .map(|f| f.getter(&bitstruct))
+            .map(|f| f.getter(&bitstruct, &inline_assertions))
             .collect::<Result<Vec<_>, _>>()?;
 
         let setters = fields
             .iter()
-            .map(|f| f.setters(&bitstruct))
+            .map(|f| f.setters(&bitstruct, &inline_assertions))
             .collect::<Result<Vec<_>, _>>()?;
 
         let generate_debug = extract_derive("Debug", &mut s.attrs);
@@ -541,6 +559,15 @@ impl BitStruct {
             })
         } else {
             None
+        };
+
+        let const_assertions = if has_generics {
+            None
+        } else {
+            Some(parse_quote_spanned! {
+                bitstruct.bitos_attr.span =>
+                const _: () = { #ident::__assertions() };
+            })
         };
 
         let def = parse_quote_spanned! {
@@ -565,13 +592,13 @@ impl BitStruct {
 
                 #[inline(always)]
                 pub fn from_bits(value: <Self as ::bitos::TryBits>::Bits) -> Self {
-                    const { Self::__assertions() };
+                    #inline_assertions
                     Self(value, #phantom_data)
                 }
 
                 #[inline(always)]
                 pub fn to_bits(&self) -> <Self as ::bitos::TryBits>::Bits {
-                    const { Self::__assertions() };
+                    #inline_assertions
                     self.0
                 }
 
@@ -632,6 +659,7 @@ impl BitStruct {
         };
 
         Ok(BitStruct {
+            const_assertions,
             def,
             impl_,
             extra_impls,
@@ -642,12 +670,14 @@ impl BitStruct {
 impl ToTokens for BitStruct {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let Self {
+            const_assertions,
             def,
             impl_,
             extra_impls,
         } = self;
 
         tokens.extend(quote::quote! {
+            #const_assertions
             #def
             #impl_
             #extra_impls

@@ -1,27 +1,15 @@
 #![warn(clippy::semicolon_if_nothing_returned)]
 
-use bitos::prelude::*;
+use bitos::{integer::u7, prelude::*};
 
 #[bitos(8)]
 #[derive(Debug)]
-pub struct Person<T>
-where
-    T: Bits,
-{
-    #[bits(0..7)]
-    age: T,
+pub struct Person {
+    #[bits(1..7)]
+    age: u7,
     #[bits(7)]
     alive: bool,
 }
-
-// #[derive(Debug)]
-// #[bitos(40)]
-// pub struct FriendGroup {
-//     #[bits(0..32)]
-//     members: [Person<u8>; 4],
-//     #[bits(32..)]
-//     favorite_number: u8,
-// }
 
 fn main() {
     // let person = Person::<i7>::from_bits(0b100_0000);
