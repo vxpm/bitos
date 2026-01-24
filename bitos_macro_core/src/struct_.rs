@@ -333,7 +333,7 @@ impl StructField {
                 #[doc = #field_ident_str]
                 #[doc = "` field."]
                 #[inline(always)]
-                #vis fn #field_setter_ident (&mut self, value: #field_ty) -> &mut Self {
+                #vis fn #field_setter_ident (&mut self, value: #field_ty) {
                     #[allow(unused_imports)]
                     use bitos::{TryBits, BitUtils, integer::UnsignedInt};
                     #assertions
@@ -343,8 +343,7 @@ impl StructField {
                         <<#field_ty as TryBits>::Bits as UnsignedInt>::value(value_bits)
                     );
 
-                    self.0 = self.0.with_bits(#bits_start, #bits_end, value_upcast);
-                    self
+                    self.0.set_bits(#bits_start, #bits_end, value_upcast);
                 }
 
                 #[doc = "Consumes `self` to modify the value of the `"]
@@ -366,7 +365,7 @@ impl StructField {
                     #[doc = #field_ident_str]
                     #[doc = "` field."]
                     #[inline(always)]
-                    #vis fn #field_elem_setter_ident (&mut self, index: usize, value: #elem) -> &mut Self {
+                    #vis fn #field_elem_setter_ident (&mut self, index: usize, value: #elem) {
                         #[allow(unused_imports)]
                         use bitos::{TryBits, BitUtils, integer::UnsignedInt};
                         #assertions
@@ -380,10 +379,8 @@ impl StructField {
                                 <<#elem as TryBits>::Bits as UnsignedInt>::value(value_bits)
                             );
 
-                            self.0 = self.0.with_bits(offset, offset + elem_len, value_upcast);
+                            self.0.set_bits(offset, offset + elem_len, value_upcast);
                         }
-
-                        self
                     }
 
                     #[doc = "Consumes `self` to modify the value of a element in the `"]
@@ -399,13 +396,11 @@ impl StructField {
                     #[doc = #field_ident_str]
                     #[doc = "` field."]
                     #[inline(always)]
-                    #vis fn #field_setter_ident (&mut self, value: [#elem; #len]) -> &mut Self{
+                    #vis fn #field_setter_ident (&mut self, value: [#elem; #len]) {
                         #assertions
                         for (i, elem) in value.into_iter().enumerate() {
                             self.#field_elem_setter_ident(i, elem);
                         }
-
-                        self
                     }
 
                     #[doc = "Consumes `self` to modify the value of the `"]
@@ -424,7 +419,7 @@ impl StructField {
                 #[doc = #field_ident_str]
                 #[doc = "` field."]
                 #[inline(always)]
-                #vis fn #field_setter_ident (&mut self, value: #field_ty) -> &mut Self {
+                #vis fn #field_setter_ident (&mut self, value: #field_ty) {
                     #[allow(unused_imports)]
                     use bitos::{TryBits, BitUtils, integer::UnsignedInt};
                     #assertions
@@ -434,8 +429,7 @@ impl StructField {
                         <<#field_ty as TryBits>::Bits as UnsignedInt>::value(value_bits)
                     );
 
-                    self.0 = self.0.with_bits(#bits_start, #bits_end, value_upcast);
-                    self
+                    self.0.set_bits(#bits_start, #bits_end, value_upcast);
                 }
 
                 #[doc = "Consumes `self` to modify the value of the `"]

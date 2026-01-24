@@ -5,7 +5,7 @@ use bitos::{integer::u7, prelude::*};
 #[bitos(8)]
 #[derive(Debug)]
 pub struct Person {
-    #[bits(1..7)]
+    #[bits(0..7)]
     age: u7,
     #[bits(7)]
     alive: bool,
