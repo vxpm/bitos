@@ -119,6 +119,12 @@ pub trait IsStorageForBits<const LEN: usize> {}
 #[repr(transparent)]
 pub struct UInt<T, const LEN: usize>(T);
 
+impl<T: std::fmt::Display, const LEN: usize> std::fmt::Display for UInt<T, LEN> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 impl<T: std::fmt::Debug, const LEN: usize> std::fmt::Debug for UInt<T, LEN> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
@@ -478,6 +484,12 @@ const fn signed_mask(bits: usize) -> i64 {
 )]
 #[repr(transparent)]
 pub struct SInt<T, const LEN: usize>(T);
+
+impl<T: std::fmt::Display, const LEN: usize> std::fmt::Display for SInt<T, LEN> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 impl<T: std::fmt::Debug, const LEN: usize> std::fmt::Debug for SInt<T, LEN> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
