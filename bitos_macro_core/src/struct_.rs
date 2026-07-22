@@ -192,6 +192,7 @@ impl StructField {
             ..
         } = self;
 
+        let inner_ty = &bitstruct.inner_ty;
         let bits_start = bits.bitrange.start() as u8;
         let bits_end = bits.bitrange.end().unwrap_or(bitstruct.bitos_attr.bitlen) as u8;
         let len = bits_end.saturating_sub(bits_start);
@@ -206,7 +207,7 @@ impl StructField {
             #[doc = "Mask where only bits of the `"]
             #[doc = stringify!(#ident)]
             #[doc = "` field are set"]
-            #vis const #mask_ident: u64 = #mask;
+            #vis const #mask_ident: #inner_ty = #mask;
         })
     }
 
